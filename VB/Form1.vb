@@ -1,69 +1,60 @@
-Imports Microsoft.VisualBasic
-Imports System
 Imports System.Windows.Forms
 Imports DevExpress.XtraRichEdit
 Imports DevExpress.XtraRichEdit.Commands
-Imports DevExpress.XtraRichEdit.Services
 Imports DevExpress.XtraRichEdit.API.Native
 
 Namespace RichEditMasterDetailMailMerge
-	Partial Public Class Form1
-		Inherits Form
-		Public Sub New()
-			InitializeComponent()
 
-			richEditCategoryTemplate.LoadDocument("MasterTemplate.rtf")
-			richEditProductTemplate.LoadDocument("DetailTemplate.rtf")
-			ShowAllFieldCodes(richEditCategoryTemplate)
-			ShowAllFieldCodes(richEditProductTemplate)
-		End Sub
+    Public Partial Class Form1
+        Inherits Form
 
-		Private Sub performMailMergeItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs) Handles performMailMergeItem.ItemClick
-			richEditCategoryTemplate.Options.MailMerge.DataSource = NorthwindDataProvider.Categories
+        Public Sub New()
+            InitializeComponent()
+            richEditCategoryTemplate.LoadDocument("MasterTemplate.rtf")
+            richEditProductTemplate.LoadDocument("DetailTemplate.rtf")
+            ShowAllFieldCodes(richEditCategoryTemplate)
+            ShowAllFieldCodes(richEditProductTemplate)
+        End Sub
 
-			Dim mailMergeOptions As MailMergeOptions = richEditCategoryTemplate.CreateMailMergeOptions()
-			mailMergeOptions.MergeMode = MergeMode.NewParagraph
+        Private Sub performMailMergeItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs)
+            richEditCategoryTemplate.Options.MailMerge.DataSource = Categories
+            Dim mailMergeOptions As MailMergeOptions = richEditCategoryTemplate.CreateMailMergeOptions()
+            mailMergeOptions.MergeMode = MergeMode.NewParagraph
+            richEditCategoryTemplate.MailMerge(mailMergeOptions, richEditResult)
+            tabControlRichEditControls.SelectedTabPage = tabPageResult
+        End Sub
 
-			richEditCategoryTemplate.MailMerge(mailMergeOptions, richEditResult)
+        Private Sub richEditResult_CalculateDocumentVariable(ByVal sender As Object, ByVal e As CalculateDocumentVariableEventArgs)
+            Dim categoryId As Integer = -1
+            If Integer.TryParse(e.Arguments(0).Value, categoryId) Then
+                richEditProductTemplate.Options.MailMerge.DataSource = GetProductsByCategoryId(categoryId)
+                Dim documentServerProducts As RichEditDocumentServer = New RichEditDocumentServer()
+                Dim mailMergeOptions As MailMergeOptions = richEditProductTemplate.CreateMailMergeOptions()
+                mailMergeOptions.MergeMode = MergeMode.JoinTables
+                richEditProductTemplate.MailMerge(mailMergeOptions, documentServerProducts)
+                e.Value = documentServerProducts
+                e.Handled = True
+            End If
+        End Sub
 
-			tabControlRichEditControls.SelectedTabPage = tabPageResult
-		End Sub
+'#Region "Helper Methods"
+        Private Sub showAllFieldCodesItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs)
+            ShowAllFieldCodes(CType(tabControlRichEditControls.SelectedTabPage.Controls(0), RichEditControl))
+        End Sub
 
-		Private Sub richEditResult_CalculateDocumentVariable(ByVal sender As Object, ByVal e As CalculateDocumentVariableEventArgs) Handles richEditResult.CalculateDocumentVariable
-			Dim categoryId As Integer = -1
+        Private Sub showAllFieldResultsItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs)
+            ShowAllFieldResults(CType(tabControlRichEditControls.SelectedTabPage.Controls(0), RichEditControl))
+        End Sub
 
-			If Int32.TryParse(e.Arguments(0).Value, categoryId) Then
-				richEditProductTemplate.Options.MailMerge.DataSource = NorthwindDataProvider.GetProductsByCategoryId(categoryId)
+        Private Sub ShowAllFieldCodes(ByVal richEditControl As RichEditControl)
+            Dim showAllFieldCodesCommand As ShowAllFieldCodesCommand = New ShowAllFieldCodesCommand(richEditControl)
+            showAllFieldCodesCommand.Execute()
+        End Sub
 
-				Dim documentServerProducts As New RichEditDocumentServer()
-				Dim mailMergeOptions As MailMergeOptions = richEditProductTemplate.CreateMailMergeOptions()
-				mailMergeOptions.MergeMode = MergeMode.JoinTables
-
-				richEditProductTemplate.MailMerge(mailMergeOptions, documentServerProducts)
-
-				e.Value = documentServerProducts
-				e.Handled = True
-			End If
-		End Sub
-
-		#Region "Helper Methods"
-		Private Sub showAllFieldCodesItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs) Handles showAllFieldCodesItem.ItemClick
-			ShowAllFieldCodes(CType(tabControlRichEditControls.SelectedTabPage.Controls(0), RichEditControl))
-		End Sub
-
-		Private Sub showAllFieldResultsItem_ItemClick(ByVal sender As Object, ByVal e As DevExpress.XtraBars.ItemClickEventArgs) Handles showAllFieldResultsItem.ItemClick
-			ShowAllFieldResults(CType(tabControlRichEditControls.SelectedTabPage.Controls(0), RichEditControl))
-		End Sub
-
-		Private Sub ShowAllFieldCodes(ByVal richEditControl As RichEditControl)
-			Dim showAllFieldCodesCommand As New ShowAllFieldCodesCommand(richEditControl)
-			showAllFieldCodesCommand.Execute()
-		End Sub
-
-		Private Sub ShowAllFieldResults(ByVal richEditControl As RichEditControl)
-			Dim showAllFieldResultsCommand As New ShowAllFieldResultsCommand(richEditControl)
-			showAllFieldResultsCommand.Execute()
-		End Sub
-		#End Region ' Helper Methods
-	End Class
+        Private Sub ShowAllFieldResults(ByVal richEditControl As RichEditControl)
+            Dim showAllFieldResultsCommand As ShowAllFieldResultsCommand = New ShowAllFieldResultsCommand(richEditControl)
+            showAllFieldResultsCommand.Execute()
+        End Sub
+'#End Region  ' Helper Methods
+    End Class
 End Namespace
